@@ -815,6 +815,11 @@ void queryLine(LSM<int, int> &lsm, const string &line, vector<string> &strings){
     }
 
 }
+
+/*
+	Usage: ./main.out <optional files containing p/g/d commands
+*/
+
 int main(int argc, char *argv[]){
 
 //    insertLookupTest();
@@ -825,43 +830,42 @@ int main(int argc, char *argv[]){
 //    tailLatencyTest();
 //    cartesianTest();
 //    updateLookupSkewTest();
-    
-    auto lsm = LSM<int, int>(800,20,1.0,0.00100,1024,20);
+   
+//	800 elements per run
+//	20 runs
+//	merge_frac 1.0
+//	bf_fp	0.00100
+//	pageSize 1024
+//	diskRunsPerLevel 20
+ 
+//    auto lsm = LSM<int, int>(800,20,1.0,0.00100,1024,20);
+    auto lsm = LSM<int, int>(50,4,1.0,0.00100,10,4);
     auto strings = vector<string>(3);
-    if (argc == 2){
-    cout << "LSM Tree DSL Interactive Mode" << endl;
-        while (true){
-            cout << "> ";
-            string input;
-            getline(cin, input);
-            queryLine(lsm, input, strings);
-        }
-    }
-    else{
-        string line;
-        ifstream f;
-        for (int i = 1; i < argc; ++i){
-            f.open(argv[i]);
-            
-            if(!f.is_open()) {
-                perror("Error open");
-                exit(EXIT_FAILURE);
-            }
-            while(getline(f, line)) {
-                queryLine(lsm, line, strings);
-            }
-        }
-    }
 
-
-
-
-
-
-
-    
-    
-    
-    return 0;
-    
+	if (argc > 1) {
+		string line;
+		for (int i = 1; i < argc; ++i){
+			cout << "PROCESS " << argv[i] << endl; 
+			ifstream f;
+		    f.open(argv[i]);
+		    
+		    if(!f.is_open()) {
+		        perror("Error open");
+		        exit(EXIT_FAILURE);
+		    }
+		    while(getline(f, line)) {
+			cout << "queried line " << line <<  endl;
+		        queryLine(lsm, line, strings);
+		    }
+			cout << "PROCESSED " << argv[i] << endl;
+		}
+	}
+	cout << "LSM Tree DSL Interactive Mode" << endl;
+	while (true){
+	     cout << "> ";
+	     string input;
+	     getline(cin, input);
+	     queryLine(lsm, input, strings);
+	}
+	return 0;
 }
