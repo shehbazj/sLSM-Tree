@@ -35,6 +35,7 @@
 #include <sys/mman.h>
 #include <cassert>
 #include <algorithm>
+#include <mutex>
 
 
 using namespace std;
@@ -46,7 +47,7 @@ class DiskRun {
     friend class DiskLevel<K,V>;
 public:
     typedef KVPair<K,V> KVPair_t;
-
+	mutex *mergeLock;
     
     static int compareKVs (const void * a, const void * b)
     {
@@ -62,12 +63,13 @@ public:
 	size_t _filesize;
     unsigned int pageSize;
     BloomFilter<K> bf;
-    
+
     K minKey = INT_MIN;
     K maxKey = INT_MIN;
     
     DiskRun<K,V> (unsigned long capacity, unsigned int pageSize, int level, int runID, double bf_fp):_capacity(capacity),_level(level), _iMaxFP(0), pageSize(pageSize), _runID(runID), _bf_fp(bf_fp), bf(capacity, bf_fp) {
-        
+
+	mergeLock = new mutex();
         _filename = "C_" + to_string(level) + "_" + to_string(runID) + ".txt";
         
         size_t filesize = capacity * sizeof(KVPair_t);
@@ -112,6 +114,7 @@ public:
 	// TODO need file level locking here!
 	KVPair_t *getFile()
 	{
+		mergeLock->lock();
 		KVPair_t *map = new KVPair_t[_capacity];
 		int fd = open(_filename.c_str(), O_RDONLY, (mode_t) 0600);
 		if (fd == -1) {
@@ -164,12 +167,14 @@ public:
 
 		delete map;
 		map = nullptr;
+		mergeLock->unlock();
 	}
 
     ~DiskRun<K,V>(){
-        //fsync(fd);
+        fsync(fd);
         //doUnmap();
-        
+	delete mergeLock;
+
         if (remove(_filename.c_str())){
             perror(("Error removing file " + string(_filename)).c_str());
             exit(EXIT_FAILURE);
