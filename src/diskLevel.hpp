@@ -141,27 +141,30 @@ public: // TODO make some of these private
         StaticHeap h = StaticHeap((int) runList.size(), KVINTPAIRMAX);
         vector<int> heads(runList.size(), 0);
         for (int i = 0; i < runList.size(); i++){
-            KVPair_t kvp = runList[i]->map[0];
+		KVPair_t *input_run_map = runList[i]->getFile();
+            KVPair_t kvp = input_run_map[0];
             h.push(KVIntPair_t(kvp, i));
+		runList[i]->putFile(input_run_map);
         }
         
-        int j = -1;
+        int j = -1;	// key index of output map
         K lastKey = INT_MAX;
         unsigned lastk = INT_MIN;
+	KVPair_t *output_run_map = runs[_activeRun]->getFile();
         while (h.size != 0){
             auto val_run_pair = h.pop();
             assert(val_run_pair != KVINTPAIRMAX); // TODO delete asserts
             if (lastKey == val_run_pair.first.key){
                 if( lastk < val_run_pair.second){
-                    runs[_activeRun]->map[j] = val_run_pair.first;
+			output_run_map[j] = val_run_pair.first;
                 }
             }
             else {
                 ++j;
-                if ( j != -1 && lastLevel && runs[_activeRun]->map[j].value == V_TOMBSTONE){
+                if ( j != -1 && lastLevel && output_run_map[j].value == V_TOMBSTONE){
                     --j;
                 }
-                runs[_activeRun]->map[j] = val_run_pair.first;
+                output_run_map[j] = val_run_pair.first;
             }
             
             lastKey = val_run_pair.first.key;
@@ -169,21 +172,23 @@ public: // TODO make some of these private
             
             unsigned k = val_run_pair.second;
             if (++heads[k] < runList[k]->getCapacity()){
-                KVPair_t kvp = runList[k]->map[heads[k]];
+		KVPair_t *input_run_map = runList[k]->getFile();
+                KVPair_t kvp = input_run_map[heads[k]];
                 h.push(KVIntPair_t(kvp, k));
+		runList[k]->putFile(input_run_map);
             }
                 
         }
         
-        if (lastLevel && runs[_activeRun]->map[j].value == V_TOMBSTONE){
+        if (lastLevel && output_run_map[j].value == V_TOMBSTONE){
             --j;
         }
         runs[_activeRun]->setCapacity(j + 1);
         runs[_activeRun]->constructIndex();
+	runs[_activeRun]->putFile(output_run_map);
         if(j + 1 > 0){
             ++_activeRun;
         }
-        
     }
     
     void addRunByArray(KVPair_t * runToAdd, const unsigned long runLen){

@@ -57,8 +57,9 @@ public:
     }
     
     
-    KVPair_t *map;
+    //KVPair_t *map;
     int fd;
+	size_t _filesize;
     unsigned int pageSize;
     BloomFilter<K> bf;
     
@@ -70,7 +71,8 @@ public:
         _filename = "C_" + to_string(level) + "_" + to_string(runID) + ".txt";
         
         size_t filesize = capacity * sizeof(KVPair_t);
-        
+	_filesize = filesize;
+
         long result;
         
         fd = open(_filename.c_str(), O_RDWR | O_CREAT | O_TRUNC, (mode_t) 0600);
@@ -96,19 +98,77 @@ public:
             exit(EXIT_FAILURE);
         }
         
-        
+       /* 
         map = (KVPair<K, V>*) mmap(0, filesize, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
         if (map == MAP_FAILED) {
             close(fd);
             perror("Error mmapping the file");
             exit(EXIT_FAILURE);
         }
-        
+       */
         
     }
+
+	// TODO need file level locking here!
+	KVPair_t *getFile()
+	{
+		KVPair_t *map = new KVPair_t[_capacity];
+		int fd = open(_filename.c_str(), O_RDONLY, (mode_t) 0600);
+		if (fd == -1) {
+			string err("error opening file ");
+			err += _filename;
+			perror(err.c_str());
+			exit(EXIT_FAILURE);
+		}
+		int ret = read(fd, map, _filesize);
+		if (ret != _filesize) {
+			string err("error reading file to memory ");
+			err += _filename;
+			perror(err.c_str());
+			exit(EXIT_FAILURE);
+		}
+		close(fd);
+		return map;
+	}
+
+	void putFile(KVPair_t *map)
+	{
+		int fd = open(_filename.c_str(), O_WRONLY, (mode_t) 0600);
+		if (fd == -1) {
+			string err("error opening file ");
+			err += _filename;
+			perror(err.c_str());
+			exit(EXIT_FAILURE);
+		}
+		int ret = write(fd, map, _filesize);
+		if (ret != _filesize) {
+			string err("error opening file ");
+			err += _filename;
+			perror(err.c_str());
+			exit(EXIT_FAILURE);
+		}
+		ret = fsync(fd);
+		if (ret < 0) {
+			string err("error syncing file to disk ");
+			err += _filename;
+			perror(err.c_str());
+			exit(EXIT_FAILURE);
+		}
+		ret = close(fd);
+		if (ret < 0) {
+			string err("error closing file ");
+			err += _filename;
+			perror(err.c_str());
+			exit(EXIT_FAILURE);
+		}
+
+		delete map;
+		map = nullptr;
+	}
+
     ~DiskRun<K,V>(){
-        fsync(fd);
-        doUnmap();
+        //fsync(fd);
+        //doUnmap();
         
         if (remove(_filename.c_str())){
             perror(("Error removing file " + string(_filename)).c_str());
@@ -122,14 +182,15 @@ public:
         return _capacity;
     }
     void writeData(const KVPair_t *run, const size_t offset, const unsigned long len) {
-        
+        KVPair_t *map = getFile();
         memcpy(map + offset, run, len * sizeof(KVPair_t));
         _capacity = len;
-        
+	putFile(map);
     }
     void constructIndex(){
         // construct fence pointers and write BF
 //        _fencePointers.resize(0);
+	KVPair_t *map = getFile();
         _fencePointers.reserve(_capacity / pageSize);
         _iMaxFP = -1; // TODO IS THIS SAFE?
         for (int j = 0; j < _capacity; j++) {
@@ -145,7 +206,7 @@ public:
         
         minKey = map[0].key;
         maxKey = map[_capacity - 1].key;
-        
+        putFile(map);
     }
     
     unsigned long binary_search (const unsigned long offset, const unsigned long n, const K &key, bool &found) {
@@ -155,11 +216,13 @@ public:
         }
         unsigned long min = offset, max = offset + n - 1;
         unsigned long middle = (min + max) >> 1;
+	KVPair_t *map = getFile();
         while (min <= max) {
             if (key > map[middle].key)
                 min = middle + 1;
             else if (key == map[middle].key) {
                 found = true;
+		putFile(map);
                 return middle;
             }
             else
@@ -167,6 +230,7 @@ public:
             middle = (min + max) >> 1;
             
         }
+	putFile(map);
         return min;
     }
     
@@ -226,7 +290,9 @@ public:
     
      V lookup(const K &key, bool &found){
          unsigned long idx = get_index(key, found);
+	KVPair_t *map = getFile();
          V ret = map[idx].value;
+	putFile(map);
          return found ? ret : (V) NULL;
      }
     
@@ -252,9 +318,11 @@ public:
     }
     
     void printElts(){
+	KVPair_t *map = getFile();
         for (int j = 0; j < _capacity; j++){
             cout << map[j].key << " ";
         }
+	putFile(map);
         cout << endl;
     }
     
@@ -266,7 +334,7 @@ private:
     unsigned _iMaxFP;
     unsigned _runID;
     double _bf_fp;
-                            
+    /*
     void doMap(){
         
         size_t filesize = _capacity * sizeof(KVPair_t);
@@ -297,7 +365,7 @@ private:
         close(fd);
         fd = -5;
     }
-    
+    */
     void doubleSize(){
         unsigned long new_capacity = _capacity * 2;
         
@@ -315,14 +383,14 @@ private:
             perror("Error writing last byte of the file");
             exit(EXIT_FAILURE);
         }
-        
+        /*
         map = (KVPair<K, V>*) mmap(0, new_filesize, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
         if (map == MAP_FAILED) {
             close(fd);
             perror("Error mmapping the file");
             exit(EXIT_FAILURE);
         }
-        
+        */
         _capacity = new_capacity;
     }
     

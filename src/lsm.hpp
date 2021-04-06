@@ -43,9 +43,6 @@ template <class K, class V>
 class LSM {
     
     typedef SkipList<K,V> RunType;
-    
-    
-    
 public:
     V V_TOMBSTONE = (V) TOMBSTONE;
     mutex *mergeLock;
@@ -107,7 +104,7 @@ public:
         C_0[_activeRun]->insert_key(key,value);
         filters[_activeRun]->add(&key, sizeof(K));
     }
-    
+	// start looking from active level upwards to get the most recent key...
     bool lookup(K &key, V &value){
         bool found = false;
         for (int i = _activeRun; i >= 0; --i){
@@ -171,17 +168,19 @@ public:
             for (int r = diskLevels[j]->_activeRun - 1; r >= 0 ; --r){
                 unsigned long i1, i2;
                 diskLevels[j]->runs[r]->range(key1, key2, i1, i2);
+                auto map = diskLevels[j]->runs[r]->getFile();
                 if (i2 - i1 != 0){
                     auto oldSize = eltsInRange.size();
                     eltsInRange.reserve(oldSize + (i2 - i1)); // also over-reserves space
                     for (unsigned long m = i1; m < i2; ++m){
-                        auto KV = diskLevels[j]->runs[r]->map[m];
+                        auto KV = map[m];
                         V dummy = ht.putIfEmpty(KV.key, KV.value);
                         if (!dummy && KV.value != V_TOMBSTONE) {
                             eltsInRange.push_back(KV);
                         }
                     }
                 }
+		diskLevels[j]->runs[r]->putFile(map);
             }
         }
         
@@ -209,10 +208,12 @@ public:
             cout << "DISK LEVEL " << i << endl;
             for (int j = 0; j < diskLevels[i]->_activeRun; j++){
                 cout << "RUN " << j << endl;
+		auto m = diskLevels[i]->runs[j]->getFile();
                 for (int k = 0; k < diskLevels[i]->runs[j]->getCapacity(); k++){
-                    cout << diskLevels[i]->runs[j]->map[k].key << ":" << diskLevels[i]->runs[j]->map[k].value << " ";
+                    cout << m[k].key << ":" << m[k].value << " ";
                 }
                 cout << endl;
+		diskLevels[i]->runs[j]->putFile(m);
             }
             cout << endl;
         }
@@ -237,7 +238,7 @@ public:
     double _frac_runs_merged;
     unsigned int _numDiskLevels;
     unsigned int _diskRunsPerLevel;
-    unsigned int _num_to_merge;
+    unsigned int _num_to_merge;	// num_runs * fraction (m)
     unsigned int _pageSize;
     unsigned long _n;
     thread mergeThread;
