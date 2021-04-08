@@ -302,8 +302,8 @@ public:
         if (mergeThread.joinable()){
             mergeThread.join();
         }
-        mergeThread = thread (&LSM::merge_runs, this, runs_to_merge,bf_to_merge); // comment for single threaded merging
-//        merge_runs(runs_to_merge, bf_to_merge); // uncomment for single threaded merging
+//        mergeThread = thread (&LSM::merge_runs, this, runs_to_merge,bf_to_merge); // comment for single threaded merging
+        merge_runs(runs_to_merge, bf_to_merge); // uncomment for single threaded merging
         C_0.erase(C_0.begin(), C_0.begin() + _num_to_merge);
         filters.erase(filters.begin(), filters.begin() + _num_to_merge);
         
