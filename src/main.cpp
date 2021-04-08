@@ -38,6 +38,7 @@ using namespace std;
 
 struct timespec start, finish;
 double elapsed;
+bool done=false;
 
 struct LSMParams {
     const int num_inserts;
@@ -810,7 +811,9 @@ void queryLine(LSM<int, int> &lsm, const string &line, vector<string> &strings){
         case 's': {
             lsm.printStats();
         }
-            
+     	case 'q': {
+		done=true;		
+	}       
 
     }
 
@@ -820,10 +823,10 @@ void queryLine(LSM<int, int> &lsm, const string &line, vector<string> &strings){
 	Usage: ./main.out <optional files containing p/g/d commands
 */
 
-int main(int argc, char *argv[]){
 
+int main(int argc, char *argv[]){
 //    insertLookupTest();
-//    updateDeleteTest();
+    updateDeleteTest();
 //    rangeTest();
 //    rangeTimeTest();
 //    concurrentLookupTest();
@@ -861,7 +864,7 @@ int main(int argc, char *argv[]){
 		}
 	}
 	cout << "LSM Tree DSL Interactive Mode" << endl;
-	while (true){
+	while (!done){
 	     cout << "> ";
 	     string input;
 	     getline(cin, input);
