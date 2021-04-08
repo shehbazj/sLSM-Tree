@@ -825,15 +825,69 @@ void queryLine(LSM<int, int> &lsm, const string &line, vector<string> &strings){
 
 
 int main(int argc, char *argv[]){
-//    insertLookupTest();
-    updateDeleteTest();
-//    rangeTest();
-//    rangeTimeTest();
-//    concurrentLookupTest();
-//    tailLatencyTest();
-//    cartesianTest();
-//    updateLookupSkewTest();
-   
+
+	if (argc >= 2) {
+		switch(argv[1][0]) {
+			case '1':
+			    insertLookupTest();
+				exit(0);
+			case '2':
+			    updateDeleteTest();
+				exit(0);
+			case '3':
+			    rangeTest();
+				cout << "Returned from Range Test" << endl;
+				exit(0);
+			case '4':
+			    rangeTimeTest();
+				exit(0);
+			case '5':
+			    concurrentLookupTest();
+				exit(0);
+			case '6':
+			    tailLatencyTest();
+				exit(0);
+			case '7':
+			    cartesianTest();
+				exit(0);
+			case '8':
+			    updateLookupSkewTest();
+				exit(0);
+			default:
+				cout << "Entered default" << endl;
+			if (argc > 1) {
+					
+				auto lsm = LSM<int, int>(50,4,1.0,0.00100,10,4);
+				auto strings = vector<string>(3);
+
+				string line;
+				for (int i = 1; i < argc; ++i){
+					cout << "PROCESS " << argv[i] << endl; 
+					ifstream f;
+					f.open(argv[i]);
+		
+					if(!f.is_open()) {
+						perror("Error open");
+						exit(EXIT_FAILURE);
+					}
+
+					while(getline(f, line)) {
+						cout << "queried line " << line <<  endl;
+						queryLine(lsm, line, strings);
+					}
+					cout << "PROCESSED " << argv[i] << endl;
+				}
+			}
+		};
+	} else {
+	cout << "ARGV is 1" << endl;
+
+	auto lsm = LSM<int, int>(50,4,1.0,0.00100,10,4);
+	auto strings = vector<string>(3);
+
+	cout << "Options completed " << endl;   
+
+
 //	800 elements per run
 //	20 runs
 //	merge_frac 1.0
@@ -842,33 +896,13 @@ int main(int argc, char *argv[]){
 //	diskRunsPerLevel 20
  
 //    auto lsm = LSM<int, int>(800,20,1.0,0.00100,1024,20);
-    auto lsm = LSM<int, int>(50,4,1.0,0.00100,10,4);
-    auto strings = vector<string>(3);
-
-	if (argc > 1) {
-		string line;
-		for (int i = 1; i < argc; ++i){
-			cout << "PROCESS " << argv[i] << endl; 
-			ifstream f;
-		    f.open(argv[i]);
-		    
-		    if(!f.is_open()) {
-		        perror("Error open");
-		        exit(EXIT_FAILURE);
-		    }
-		    while(getline(f, line)) {
-			cout << "queried line " << line <<  endl;
-		        queryLine(lsm, line, strings);
-		    }
-			cout << "PROCESSED " << argv[i] << endl;
-		}
-	}
 	cout << "LSM Tree DSL Interactive Mode" << endl;
 	while (!done){
 	     cout << "> ";
 	     string input;
 	     getline(cin, input);
 	     queryLine(lsm, input, strings);
+	}
 	}
 	return 0;
 }
