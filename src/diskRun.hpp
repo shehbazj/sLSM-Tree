@@ -61,7 +61,8 @@ public:
     int fd;
     unsigned int pageSize;
     BloomFilter<K> bf;
-    
+	size_t filesize;   
+ 
     K minKey = INT_MIN;
     K maxKey = INT_MIN;
     
@@ -69,7 +70,7 @@ public:
         
         _filename = "C_" + to_string(level) + "_" + to_string(runID) + ".txt";
         
-        size_t filesize = capacity * sizeof(KVPair_t);
+        filesize = capacity * sizeof(KVPair_t);
         
         long result;
         
@@ -96,20 +97,46 @@ public:
             exit(EXIT_FAILURE);
         }
         
-        
+        /*
         map = (KVPair<K, V>*) mmap(0, filesize, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
         if (map == MAP_FAILED) {
             close(fd);
             perror("Error mmapping the file");
             exit(EXIT_FAILURE);
         }
+	*/
         
+	map = (KVPair<K, V>*) (new char[filesize]);
+	if (map == nullptr) {
+		cout << "Could not initialize memory " << endl;
+		exit(EXIT_FAILURE);
+	}
         
     }
     ~DiskRun<K,V>(){
-        fsync(fd);
-        doUnmap();
-        
+//        fsync(fd);
+//        doUnmap();
+	int ret = write(fd, (void *)map, filesize);
+	if (ret != filesize) {
+		printf("Write Failed\n");
+		exit(1);
+	}
+
+	ret = fsync(fd);
+	if (ret < 0) {
+		printf("Sync failed\n");
+		exit(1);
+	}
+
+	ret = close(fd);
+	if (ret < 0) {
+		printf("Close failed\n");
+		exit(1);
+	}
+
+	delete []map;
+	map = nullptr; 
+       
         if (remove(_filename.c_str())){
             perror(("Error removing file " + string(_filename)).c_str());
             exit(EXIT_FAILURE);
