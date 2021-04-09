@@ -35,7 +35,7 @@
 #include <sys/mman.h>
 #include <cassert>
 #include <algorithm>
-
+#include "charbuf.hpp"
 
 using namespace std;
 
@@ -58,14 +58,61 @@ public:
     
     
     KVPair_t *map;
-    int fd;
     unsigned int pageSize;
     BloomFilter<K> bf;
 	size_t filesize;   
  
     K minKey = INT_MIN;
     K maxKey = INT_MIN;
-    
+
+
+KVPair_t *init_map(string _filename, size_t filesize) {
+	KVPair_t *map = (KVPair<K, V>*) (new char[filesize]);
+	if (map == nullptr) {
+		cout << "Could not initialize memory " << endl;
+		exit(EXIT_FAILURE);
+	}
+	int fd = open(_filename.c_str(), O_RDONLY);
+	if (fd < 0) {
+		printf("%s:%d:Open failed on write %s %s\n", __FILE__, __LINE__, strerror(errno), _filename.c_str());
+		exit(1);
+	}
+	int ret = read(fd, map, filesize);
+	if (ret != filesize) {
+		printf("Read failed\n");
+		exit(1);
+	}
+	ret = close(fd);
+	return map;
+}
+
+void exitMap(KVPair_t *map, string _filename, size_t filesize)
+{
+	int fd = open(_filename.c_str(), O_WRONLY);
+	if (fd < 0) {
+		printf("%s:%d:Open failed on write %s %s\n", __FILE__, __LINE__, strerror(errno), _filename.c_str());
+		exit(1);
+	}
+
+	int ret = write(fd, map, filesize);
+	if (ret != filesize) {
+		printf("Write Failed\n");
+		exit(1);
+	}
+
+	ret = fsync(fd);
+	if (ret < 0) {
+		printf("Sync failed\n");
+		exit(1);
+	}
+
+	ret = close(fd);
+	if (ret < 0) {
+		printf("Close failed\n");
+		exit(1);
+	}
+}
+
     DiskRun<K,V> (unsigned long capacity, unsigned int pageSize, int level, int runID, double bf_fp):_capacity(capacity),_level(level), _iMaxFP(0), pageSize(pageSize), _runID(runID), _bf_fp(bf_fp), bf(capacity, bf_fp) {
         
         _filename = "C_" + to_string(level) + "_" + to_string(runID) + ".txt";
@@ -74,7 +121,7 @@ public:
         
         long result;
         
-        fd = open(_filename.c_str(), O_RDWR | O_CREAT | O_TRUNC, (mode_t) 0600);
+        int fd = open(_filename.c_str(), O_RDWR | O_CREAT | O_TRUNC, (mode_t) 0600);
         if (fd == -1) {
             perror("Error opening file for writing");
             exit(EXIT_FAILURE);
@@ -96,54 +143,31 @@ public:
             perror("Error writing last byte of the file");
             exit(EXIT_FAILURE);
         }
-        
-        /*
-        map = (KVPair<K, V>*) mmap(0, filesize, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
-        if (map == MAP_FAILED) {
-            close(fd);
-            perror("Error mmapping the file");
-            exit(EXIT_FAILURE);
-        }
-	*/
-        
-	map = (KVPair<K, V>*) (new char[filesize]);
-	if (map == nullptr) {
-		cout << "Could not initialize memory " << endl;
-		exit(EXIT_FAILURE);
-	}
-        
+       
+	close(fd);
+    
+	map = init_map(_filename, filesize);
     }
+
     ~DiskRun<K,V>(){
 //        fsync(fd);
 //        doUnmap();
-	int ret = write(fd, (void *)map, filesize);
-	if (ret != filesize) {
-		printf("Write Failed\n");
-		exit(1);
-	}
 
-	ret = fsync(fd);
-	if (ret < 0) {
-		printf("Sync failed\n");
-		exit(1);
-	}
-
-	ret = close(fd);
-	if (ret < 0) {
-		printf("Close failed\n");
-		exit(1);
-	}
+	// define function exitMap(void *map, char *filename) that would open and write all data from map to filename
+	// TODO open int fd = filename
+	exitMap(map, _filename, filesize);
 
 	delete []map;
-	map = nullptr; 
-       
+	map = nullptr;
+
         if (remove(_filename.c_str())){
             perror(("Error removing file " + string(_filename)).c_str());
             exit(EXIT_FAILURE);
         }
     }
+
     void setCapacity(unsigned long newCap){
-        _capacity = newCap;
+        	_capacity = newCap;
     }
     unsigned long getCapacity(){
         return _capacity;
@@ -293,11 +317,12 @@ private:
     unsigned _iMaxFP;
     unsigned _runID;
     double _bf_fp;
-                            
+/*                            
     void doMap(){
         
         size_t filesize = _capacity * sizeof(KVPair_t);
-        
+	int fd;        
+
         fd = open(_filename.c_str(), O_RDWR | O_CREAT | O_TRUNC, (mode_t) 0600);
         if (fd == -1) {
             perror("Error opening file for writing");
@@ -324,10 +349,11 @@ private:
         close(fd);
         fd = -5;
     }
-    
+   
     void doubleSize(){
         unsigned long new_capacity = _capacity * 2;
-        
+	
+ 
         size_t new_filesize = new_capacity * sizeof(KVPair_t);
         int result = lseek(fd, new_filesize - 1, SEEK_SET);
         if (result == -1) {
@@ -352,7 +378,7 @@ private:
         
         _capacity = new_capacity;
     }
-    
+	*/    
     
     
     
