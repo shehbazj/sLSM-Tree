@@ -35,7 +35,6 @@
 #include <sys/mman.h>
 #include <cassert>
 #include <algorithm>
-#include "charbuf.hpp"
 
 using namespace std;
 
