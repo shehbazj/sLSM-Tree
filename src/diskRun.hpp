@@ -307,7 +307,33 @@ void exitMap(KVPair_t *map, string _filename, size_t filesize)
         }
         cout << endl;
     }
-    
+
+	void unloadMap() {
+		exitMap(map, _filename, filesize);
+	}
+
+	string getFName() {
+		return _filename;
+	}
+
+	size_t getFSize() {
+		return filesize;
+	}			
+
+	void reloadMap() {
+		int fd = open(_filename.c_str(), O_RDONLY);
+		if (fd < 0) {
+			printf("%s:%d:Open failed on write %s %s\n", __FILE__, __LINE__, strerror(errno), _filename.c_str());
+			exit(1);
+		}
+		int ret = read(fd, map, filesize);
+		if (ret != filesize) {
+			printf("Read failed\n");
+			exit(1);
+		}
+		ret = close(fd);
+	}
+	 
 private:
     unsigned long _capacity;
     string _filename;

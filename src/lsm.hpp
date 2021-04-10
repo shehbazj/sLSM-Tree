@@ -262,14 +262,66 @@ public:
         
         vector<DiskRun<K, V> *> runsToMerge = diskLevels[level - 1]->getRunsToMerge();
         unsigned long runLen = diskLevels[level - 1]->_runSize;
-        diskLevels[level]->addRuns(runsToMerge, runLen, isLast);
-        diskLevels[level - 1]->freeMergedRuns(runsToMerge);
-        
 
-        
-        
-        
+	// 1. write all addRuns and _activeRun buffers on the file and sync.
+
+	for (auto r : runsToMerge)
+	{
+		r->unloadMap();
+	}
+	diskLevels[level]->runs[diskLevels[level]->_activeRun]->unloadMap();
+
+	// 2. send inputFile names and inputFile sizes to computational disk.
+
+	vector <string> inputFileNames;
+	vector <size_t> inputFileSizes;
+
+	for (auto r : runsToMerge)
+	{
+		inputFileNames.push_back(r->getFName());
+		inputFileSizes.push_back(r->getFSize());
+	}
+
+	string outputFileName = diskLevels[level]->runs[diskLevels[level]->_activeRun]->getFName();
+	size_t outputFileSize = diskLevels[level]->runs[diskLevels[level]->_activeRun]->getFSize();
+	// 3. call custom addRuns function.
+
+	// debug prints:
+	cout << "Merging " << endl;
+	for (auto ifn : inputFileNames)
+		cout << ifn << " ";
+	cout << endl;
+
+	for (auto ifz : inputFileSizes)
+		cout << ifz << " ";
+	cout << endl;
+	cout << "Output " << endl;
+	cout << outputFileName << " " << outputFileSize << endl;
+	
+//        diskLevels[level]->addRuns(runsToMerge, runLen, isLast);
+        int j = diskLevels[level]->addRunsCompute(inputFileNames, inputFileSizes, outputFileName, outputFileSize, isLast);
+
+	// 4. reload changes done in addRuns to the buffer.
+
+	
+	//This is not required, as input files are immutable!
+	/*
+	for (auto r : runsToMerge)
+	{
+		r->reloadMap();
+	}
+	*/
+
+	// reload output buffer from disk into memory
+	diskLevels[level]->runs[diskLevels[level]->_prevRun]->reloadMap();
+
+	// do fence pointer construction in host.
+	diskLevels[level]->runs[diskLevels[level]->_prevRun]->setCapacity(j+1);
+	diskLevels[level]->runs[diskLevels[level]->_prevRun]->constructIndex();
+	
+        diskLevels[level - 1]->freeMergedRuns(runsToMerge);
     }
+
     void merge_runs(vector<Run<K,V>*> runs_to_merge, vector<BloomFilter<K>*> bf_to_merge){
         vector<KVPair<K, V>> to_merge = vector<KVPair<K,V>>();
         to_merge.reserve(_eltsPerRun * _num_to_merge);
