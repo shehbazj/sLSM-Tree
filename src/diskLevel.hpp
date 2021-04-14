@@ -112,10 +112,10 @@ public: // TODO make some of these private
     unsigned _mergeSize; // # of runs to merge downwards
     double _bf_fp; // bloom filter false positive
     vector<DiskRun<K,V> *> runs;
-
+	int read_fd, write_fd; // computational storage file descriptors
     
     
-    DiskLevel<K,V>(unsigned int pageSize, int level, unsigned long runSize, unsigned numRuns, unsigned mergeSize, double bf_fp):_numRuns(numRuns), _runSize(runSize),_level(level), _pageSize(pageSize), _mergeSize(mergeSize), _activeRun(0), _bf_fp(bf_fp){
+    DiskLevel<K,V>(unsigned int pageSize, int level, unsigned long runSize, unsigned numRuns, unsigned mergeSize, double bf_fp, int read_fd, int write_fd):_numRuns(numRuns), _runSize(runSize),_level(level), _pageSize(pageSize), _mergeSize(mergeSize), _activeRun(0), _bf_fp(bf_fp), read_fd(read_fd), write_fd(write_fd) {
         KVPAIRMAX = (KVPair_t) {INT_MAX, 0};
         KVINTPAIRMAX = KVIntPair_t(KVPAIRMAX, -1);
         
@@ -184,13 +184,70 @@ void exitMap(KVPair_t *map, string _filename, size_t filesize)
         }
 }
 
+	string createString(vector <string> &inputFileNames, vector <size_t> inputFileSizes, string outputFileName, size_t outputFileSize)
+	{
+		string allFileNamesAndSizes;
+		int i;
+		int k = inputFileNames.size();
+
+		allFileNamesAndSizes += to_string(k);
+		allFileNamesAndSizes += '|';
+		for (i = 0 ; i < k; i++) {
+			allFileNamesAndSizes += inputFileNames[i];
+			allFileNamesAndSizes += '|';
+			allFileNamesAndSizes += to_string(inputFileSizes[i]);
+			allFileNamesAndSizes += '|';
+		}
+		
+		allFileNamesAndSizes += outputFileName;
+		allFileNamesAndSizes += '|';
+		allFileNamesAndSizes += to_string(outputFileSize);
+		allFileNamesAndSizes += '|';
+
+		return allFileNamesAndSizes;	
+	}
+
+	int sendToCompute(vector <string> &inputFileNames, vector <size_t> inputFileSizes, string outputFileName, size_t outputFileSize)
+	{
+		string allFileNamesAndSizes = createString(inputFileNames, inputFileSizes, outputFileName, outputFileSize);
+		int i;
+		int k = inputFileSizes.size();
+		int count;
+
+		//char buf[BUFSIZE];
+
+		printf("write to compute fd\n");
+		int ret = write(write_fd, allFileNamesAndSizes.c_str(), allFileNamesAndSizes.size());
+		if (ret < 0) {
+			printf("Error writing data %s\n", strerror(errno));
+			exit(1);
+		}
+		printf("write to compute fd complete\n");
+	
+		printf("read/write complete\n");
+
+		// read output from the computational disk device
+	
+		printf("reading from compute\n");
+		int result = read(read_fd, &count, sizeof(int));
+		if (result < 0) {
+			printf("%s:Could not read %s\n", __func__, strerror(errno));
+			exit(1);
+		}
+		printf("Count returned from disk %d\n", count);
+		return count;
+	}
 
 //    void addRunsCompute(vector<DiskRun<K, V> *> &runList, const unsigned long runLen, bool lastLevel) {
     int addRunsCompute(vector<string> inputFileNames, vector <size_t> inputFileSizes, string outputFileName, size_t outputFileSize , bool lastLevel) {
 	
 	vector <KVPair_t *> input_maps;
 	KVPair_t * output_map;
-        
+	int compute_j;      
+ 
+	compute_j = sendToCompute(inputFileNames, inputFileSizes, outputFileName, outputFileSize);
+ 
+	// move this to compute.
 	int num_ip_files = inputFileNames.size();
 	
 	for (int curr = 0; curr < num_ip_files ; curr++)
@@ -243,13 +300,15 @@ void exitMap(KVPair_t *map, string _filename, size_t filesize)
                 h.push(KVIntPair_t(kvp, k));
             }    
         }
-       
-	 
+       	 
 	KVPair_t tmp;
 	memcpy(&tmp, output_map + j , sizeof(KVPair_t));
         if (lastLevel && tmp.value == V_TOMBSTONE){
             --j;
         }
+	// return back from compute.
+
+	// j = compute_j;
 	/*
 	
 	move these two functions to lsm.hpp as we want to not port

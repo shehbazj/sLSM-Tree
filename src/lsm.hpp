@@ -57,14 +57,43 @@ public:
     
     LSM<K,V>(const LSM<K,V> &other) = default;
     LSM<K,V>(LSM<K,V> &&other) = default;
-    
+   
+	int write_fd;
+	int read_fd;
+ 
     LSM<K,V>(unsigned long eltsPerRun, unsigned int numRuns, double merged_frac, double bf_fp, unsigned int pageSize, unsigned int diskRunsPerLevel): _eltsPerRun(eltsPerRun), _num_runs(numRuns), _frac_runs_merged(merged_frac), _diskRunsPerLevel(diskRunsPerLevel), _num_to_merge(ceil(_frac_runs_merged * _num_runs)), _pageSize(pageSize){
         _activeRun = 0;
         _bfFalsePositiveRate = bf_fp;
         _n = 0;
-        
-        
-        DiskLevel<K,V> * diskLevel = new DiskLevel<K, V>(pageSize, 1, _num_to_merge * _eltsPerRun, _diskRunsPerLevel, ceil(_diskRunsPerLevel * _frac_runs_merged), _bfFalsePositiveRate);
+	
+	const char *app_reader = "/tmp/app_reader";
+	const char *app_writer = "/tmp/app_writer";
+
+	if( !access( app_writer, F_OK ) == 0 ) {
+		printf("Please run computational_disk first\n");
+		exit(1);
+	}
+	
+	if( !access( app_reader, F_OK ) == 0 ) {
+		printf("Please run computational_disk first\n");
+		exit(1);
+	}
+
+	// write application data
+	write_fd = open(app_writer, O_WRONLY);
+	if (write_fd < 0) {
+		printf("Could not open %s for writing %s\n", app_writer, strerror(errno));
+		exit(1);
+	}
+
+	// read computation disk output
+	read_fd = open(app_reader, O_RDONLY);
+	if (read_fd < 0) {
+		printf("Could not open %s for reading %s\n", app_reader, strerror(errno));
+		exit(1);
+	}
+
+        DiskLevel<K,V> * diskLevel = new DiskLevel<K, V>(pageSize, 1, _num_to_merge * _eltsPerRun, _diskRunsPerLevel, ceil(_diskRunsPerLevel * _frac_runs_merged), _bfFalsePositiveRate, read_fd, write_fd);
         
         diskLevels.push_back(diskLevel);
         _numDiskLevels = 1;
@@ -92,7 +121,8 @@ public:
         for (int i = 0; i < diskLevels.size(); ++i){
             delete diskLevels[i];
         }
-        
+        close (read_fd);
+	close (write_fd);
     }
     
     void insert_key(K &key, V &value) {
@@ -246,7 +276,7 @@ public:
         bool isLast = false;
         
         if (level == _numDiskLevels){ // if this is the last level
-            DiskLevel<K,V> * newLevel = new DiskLevel<K, V>(_pageSize, level + 1, diskLevels[level - 1]->_runSize * diskLevels[level - 1]->_mergeSize, _diskRunsPerLevel, ceil(_diskRunsPerLevel * _frac_runs_merged), _bfFalsePositiveRate);
+            DiskLevel<K,V> * newLevel = new DiskLevel<K, V>(_pageSize, level + 1, diskLevels[level - 1]->_runSize * diskLevels[level - 1]->_mergeSize, _diskRunsPerLevel, ceil(_diskRunsPerLevel * _frac_runs_merged), _bfFalsePositiveRate, read_fd, write_fd);
             diskLevels.push_back(newLevel);
             _numDiskLevels++;
         }
