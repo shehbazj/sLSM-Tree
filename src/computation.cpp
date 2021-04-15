@@ -9,8 +9,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <iostream>
-#include <cstdint>
-#include <limits>
+#include <limits.h>
 #include <vector>
 #include <cassert>
 
@@ -20,36 +19,36 @@
 
 using namespace std;
 
-int TOMBSTONE = numeric_limits<std::int32_t>::min();
+int TOMBSTONE = INT_MIN;
 
 typedef struct KVPair {
-	int key;
-	int value;
+	int32_t key;
+	int32_t value;
+
+    bool operator==(KVPair kv) const {
+        return (kv.key == key && kv.value == value);
+    }
+    bool operator!=(KVPair kv) const {
+        return (kv.key != key != kv.value != value);
+    }
+
+    bool operator<(KVPair kv) const{
+        return key < kv.key;
+    }
+
+    bool operator>(KVPair kv) const{
+        return key > kv.key;
+    }
 } KVPair_t;
 
-typedef struct KVIntPair {
-	int key;
-	int value;
-	int second_field;
-
-	KVIntPair() : key(numeric_limits<int>::max()), value(numeric_limits<int>::max()), second_field(numeric_limits<int>::max())
-	{
-	}
-
-	KVIntPair(KVPair_t pair, int second)
-	{
-		key = pair.key;
-		value = pair.value;
-		second_field = second;
-	}
-} KVIntPair_t;
+typedef pair<KVPair, int> KVIntPair_t;
 
 #define LEFTCHILD(x) 2 * x + 1
 #define RIGHTCHILD(x) 2 * x + 2
 #define PARENT(x) (x - 1) / 2
 
-KVPair_t KVPAIRMAX;
-KVIntPair_t KVINTPAIRMAX;
+KVPair_t KVPAIRMAX = (KVPair_t) {INT_MAX, 0};
+KVIntPair_t KVINTPAIRMAX = KVIntPair_t(KVPAIRMAX, -1);
 
 int V_TOMBSTONE = (int) TOMBSTONE;
 
@@ -66,15 +65,15 @@ struct StaticHeap {
 
     void push(KVIntPair_t blob) {
         unsigned i = size++;
-        while(i && blob.key < arr[PARENT(i)].key) {
+        while(i && blob < arr[PARENT(i)]) {
             arr[i] = arr[PARENT(i)] ;
             i = PARENT(i) ;
         }
         arr[i] = blob ;
     }
     void heapify(int i) {
-        int smallest = (LEFTCHILD(i) < size && arr[LEFTCHILD(i)].key < arr[i].key) ? LEFTCHILD(i) : i ;
-        if(RIGHTCHILD(i) < size && arr[RIGHTCHILD(i)].key < arr[smallest].key) {
+        int smallest = (LEFTCHILD(i) < size && arr[LEFTCHILD(i)] < arr[i]) ? LEFTCHILD(i) : i ;
+        if(RIGHTCHILD(i) < size && arr[RIGHTCHILD(i)] < arr[smallest]) {
             smallest = RIGHTCHILD(i);
         }
         if(smallest != i) {
@@ -120,11 +119,11 @@ int getCurrentFileSize(char *buf, int *currentWordIdx)
 	return number;
 }
 
-int parseWords(char *buf, char inputFileNames[MAX_FILES][MAX_FILE_LEN], int inputFileSizes[MAX_FILES], char outputFileName[MAX_FILE_LEN], int *outputFileSz, int *KK, bool *lastLvl)
+int parseWords(char *buf, char inputFileNames[MAX_FILES][MAX_FILE_LEN], size_t inputFileSizes[MAX_FILES], char outputFileName[MAX_FILE_LEN], size_t *outputFileSz, int *KK, bool *lastLvl)
 {
 	int currentWordIdx;
 	int prevStartIdx;
-	int outputFileSize;
+	size_t outputFileSize;
 	int k=0;	
 	int i;
 	int prevCharStart=0;
@@ -174,8 +173,8 @@ int parseWords(char *buf, char inputFileNames[MAX_FILES][MAX_FILE_LEN], int inpu
 
 KVPair_t *init_map(const char *filename, size_t filesize)
 {
-        KVPair_t *map = (KVPair_t *) (new uint8_t[filesize]);
-        if (map == nullptr) {
+        KVPair_t *map = (KVPair_t *) (new char[filesize]);
+        if (map == NULL) {
                 cout << "Could not initialize memory " << endl;
                 exit(EXIT_FAILURE);
         }
@@ -220,7 +219,7 @@ void exitMap(KVPair_t *map, char *_filename, size_t filesize)
         }
 }
 
-int addRunsCompute(int k, char inputFileNames[MAX_FILES][MAX_FILE_LEN], int inputFileSizes[MAX_FILES], char outputFileName[MAX_FILE_LEN], int outputFileSize , bool lastLevel) 
+int addRunsCompute(int k, char inputFileNames[MAX_FILES][MAX_FILE_LEN], size_t inputFileSizes[MAX_FILES], char outputFileName[MAX_FILE_LEN], size_t outputFileSize , bool lastLevel) 
 {
 	 vector <KVPair_t *> input_maps;
         KVPair_t * output_map;
@@ -247,17 +246,14 @@ int addRunsCompute(int k, char inputFileNames[MAX_FILES][MAX_FILE_LEN], int inpu
         int j = -1;
 	// TODO change int type to new datatype on a different key type
 //        K lastKey = INT_MAX;
-        int lastKey = numeric_limits<int>::max();
-        unsigned lastk = numeric_limits<int> :: min();
+        int32_t lastKey = INT_MAX;
+        unsigned lastk = INT_MIN;
         while (h.size != 0){
-            auto val_run_pair = h.pop();
-            assert(val_run_pair.key != KVINTPAIRMAX.key); // TODO delete asserts
-            if (lastKey == val_run_pair.key){
-                if( lastk < val_run_pair.second_field){
-			KVPair_t kvp;
-			kvp.key = val_run_pair.key;
-			kvp.value = val_run_pair.value;
-                    memcpy(output_map + j, &kvp, sizeof(KVPair_t));
+            KVIntPair_t val_run_pair = h.pop();
+            assert(val_run_pair != KVINTPAIRMAX); // TODO delete asserts
+            if (lastKey == val_run_pair.first.key){
+                if( lastk < val_run_pair.second){
+                    memcpy(output_map + j, &val_run_pair.first, sizeof(KVPair_t));
                 }
             }
             else {
@@ -269,20 +265,17 @@ int addRunsCompute(int k, char inputFileNames[MAX_FILES][MAX_FILE_LEN], int inpu
                 if ( j != -1 && lastLevel && tmp.value == V_TOMBSTONE){
                     --j;
                 }
-		KVPair_t kvp;
-		kvp.key = val_run_pair.key;
-		kvp.value = val_run_pair.value;
-                memcpy(output_map + j, &kvp, sizeof(KVPair_t));
+                memcpy(output_map + j, &val_run_pair.first, sizeof(KVPair_t));
 //                output_map[j] = val_run_pair.first;
             }
 
-            lastKey = val_run_pair.key;
-            lastk = val_run_pair.value;
+            lastKey = val_run_pair.first.key;
+            lastk = val_run_pair.second;
 
-            unsigned k = val_run_pair.second_field;
+            unsigned k = val_run_pair.second;
             if (++heads[k] < inputFileSizes[k] / sizeof(KVPair_t)){
    //             KVPair_t kvp = input_maps[k][heads[k]];
-                KVPair_t kvp;
+		KVPair_t kvp;
                 memcpy(&kvp, input_maps[k] + heads[k], sizeof(KVPair_t));
                 h.push(KVIntPair_t(kvp, k));
             }
@@ -324,9 +317,9 @@ int compute(char *buf, int read_bytes)
 	// we parse the buffer into an array of multiple files
 
 	char inputFileNames[MAX_FILES][MAX_FILE_LEN];
-	int inputFileSizes[MAX_FILES];
+	size_t inputFileSizes[MAX_FILES];
 	char outputFileName[MAX_FILE_LEN];
-	int outputFileSize;
+	size_t outputFileSize;
 	int k;
 	int currentWordIdx;
 	bool lastLevel;
@@ -407,14 +400,3 @@ int main(int argc, char *argv[])
 
 	printf("done\n");
 }
-
-/*
-	Test Harness to test parsing code.
-
-	char buf[4096];
-	const char *input = "3|InputFile1|10|Input2|200|IP3|3000|OutputFile|25|";
-
-	strcpy(buf, input);
-		
-	compute(buf, 100);
-*/
