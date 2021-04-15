@@ -108,7 +108,6 @@ public: // TODO make some of these private
     unsigned long _runSize; // number of elts in a run
     unsigned _numRuns; // number of runs in a level
     unsigned _activeRun; // index of active run
-    unsigned _prevRun; // index of active run
     unsigned _mergeSize; // # of runs to merge downwards
     double _bf_fp; // bloom filter false positive
     vector<DiskRun<K,V> *> runs;

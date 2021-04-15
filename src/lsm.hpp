@@ -333,18 +333,17 @@ public:
 
 	// 4. reload changes done in addRuns to the buffer.
 
-	diskLevels[level]->_prevRun = diskLevels[level]->_activeRun;
-        if(j + 1 > 0){
+	// reload output buffer from disk into memory
+	diskLevels[level]->runs[diskLevels[level]->_activeRun]->reloadMap();
+
+	// do fence pointer construction in host.
+	diskLevels[level]->runs[diskLevels[level]->_activeRun]->setCapacity(j+1);
+	diskLevels[level]->runs[diskLevels[level]->_activeRun]->constructIndex();
+
+	if(j + 1 > 0){
             diskLevels[level]->_activeRun = diskLevels[level]->_activeRun + 1;
         }
 
-	// reload output buffer from disk into memory
-	diskLevels[level]->runs[diskLevels[level]->_prevRun]->reloadMap();
-
-	// do fence pointer construction in host.
-	diskLevels[level]->runs[diskLevels[level]->_prevRun]->setCapacity(j+1);
-	diskLevels[level]->runs[diskLevels[level]->_prevRun]->constructIndex();
-	
         diskLevels[level - 1]->freeMergedRuns(runsToMerge);
     }
 
