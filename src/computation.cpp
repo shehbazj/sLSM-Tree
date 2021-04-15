@@ -73,13 +73,17 @@ int V_TOMBSTONE = (int) TOMBSTONE;
 
 struct StaticHeap {
     int size ;
-    vector<KVIntPair_t> arr;
+    KVIntPair_t *arr;
     KVIntPair_t max;
+	int i;
 
     StaticHeap(unsigned sz, KVIntPair_t mx) {
         size = 0;
-        arr = vector<KVIntPair_t>(sz, mx);
+	arr = (KVIntPair_t *)malloc(sz * sizeof(KVIntPair_t));
         max = mx;
+	for (i = 0 ; i < sz; i++) {
+		arr[i] = mx;
+	}
     }
 
     void push(KVIntPair_t blob) {
@@ -109,6 +113,10 @@ struct StaticHeap {
         heapify(0);
         return ret;
     }
+
+	~StaticHeap() {
+		free(arr);
+	}
 };
 
 // currentWordIdx is the first character of the inputFileName
@@ -144,7 +152,7 @@ int parseWords(char *buf, char inputFileNames[MAX_FILES][MAX_FILE_LEN], size_t i
 	int prevStartIdx;
 	size_t outputFileSize;
 	int k=0;	
-	int i;
+	int i=0;
 	int prevCharStart=0;
 	bool lastLevel;
 
@@ -192,7 +200,7 @@ int parseWords(char *buf, char inputFileNames[MAX_FILES][MAX_FILE_LEN], size_t i
 
 KVPair_t *init_map(const char *filename, size_t filesize)
 {
-        KVPair_t *map = (KVPair_t *) (new char[filesize]);
+        KVPair_t *map = (KVPair_t *) malloc(filesize);
         if (map == NULL) {
                 cout << "Could not initialize memory " << endl;
                 exit(EXIT_FAILURE);
@@ -240,7 +248,7 @@ void exitMap(KVPair_t *map, char *_filename, size_t filesize)
 
 int addRunsCompute(int k, char inputFileNames[MAX_FILES][MAX_FILE_LEN], size_t inputFileSizes[MAX_FILES], char outputFileName[MAX_FILE_LEN], size_t outputFileSize , bool lastLevel) 
 {
-	 vector <KVPair_t *> input_maps;
+	KVPair_t **input_maps = (KVPair_t **)malloc(k * (sizeof(KVPair_t *)));
         KVPair_t * output_map;
         int compute_j;
 
@@ -249,7 +257,7 @@ int addRunsCompute(int k, char inputFileNames[MAX_FILES][MAX_FILE_LEN], size_t i
 
         for (int curr = 0; curr < num_ip_files ; curr++)
         {
-                input_maps.push_back(init_map(inputFileNames[curr],inputFileSizes[curr]));
+                input_maps[curr] = init_map(inputFileNames[curr],inputFileSizes[curr]);
         }
 
         output_map = init_map(outputFileName, outputFileSize);
@@ -326,6 +334,11 @@ int addRunsCompute(int k, char inputFileNames[MAX_FILES][MAX_FILE_LEN], size_t i
         // write output data back to disk
         exitMap(output_map, outputFileName, outputFileSize);
         // input maps were read only. they are freed by call to distructor
+	for (int i = 0; i < k ; i++) {
+		free(input_maps[i]);
+	}
+	free(input_maps);
+	free(output_map);
         return j;
 }
 
