@@ -24,24 +24,46 @@ int TOMBSTONE = INT_MIN;
 typedef struct KVPair {
 	int32_t key;
 	int32_t value;
-
-    bool operator==(KVPair kv) const {
-        return (kv.key == key && kv.value == value);
-    }
-    bool operator!=(KVPair kv) const {
-        return (kv.key != key != kv.value != value);
-    }
-
-    bool operator<(KVPair kv) const{
-        return key < kv.key;
-    }
-
-    bool operator>(KVPair kv) const{
-        return key > kv.key;
-    }
 } KVPair_t;
 
-typedef pair<KVPair, int> KVIntPair_t;
+bool isEqual(struct KVPair K1, struct KVPair K2)
+{
+        return (K1.key == K2.key && K1.value == K2.value);
+}
+
+bool isNotEqual(struct KVPair K1, struct KVPair K2)
+{
+        return (K2.key != K1.key != K2.value != K1.value);
+}
+
+bool lessThan(struct KVPair K1, struct KVPair K2)
+{
+        return K1.key < K2.key;
+}
+
+bool greaterThan(struct KVPair K1, struct KVPair K2)
+{
+        return K1.key > K2.key;
+}
+
+typedef pair <KVPair_t,int> KVIntPair_t;
+/*
+typedef struct KVIntPair
+{
+ 	struct KVPair kvpair;
+	int runId;
+} KVIntPair_t;
+*/
+
+bool isNotEqual(KVIntPair_t K1, KVIntPair_t K2)
+{
+	return !(isEqual(K1.first, K2.first) && (K1.second == K2.second));
+}
+
+bool lessThan(KVIntPair_t K1, KVIntPair_t K2)
+{
+	return lessThan(K1.first,K2.first) || (!(lessThan(K2.first,K1.first)) && K1.second<K2.second);
+}
 
 #define LEFTCHILD(x) 2 * x + 1
 #define RIGHTCHILD(x) 2 * x + 2
@@ -65,15 +87,15 @@ struct StaticHeap {
 
     void push(KVIntPair_t blob) {
         unsigned i = size++;
-        while(i && blob < arr[PARENT(i)]) {
+        while(i && lessThan(blob, arr[PARENT(i)])) {
             arr[i] = arr[PARENT(i)] ;
             i = PARENT(i) ;
         }
         arr[i] = blob ;
     }
     void heapify(int i) {
-        int smallest = (LEFTCHILD(i) < size && arr[LEFTCHILD(i)] < arr[i]) ? LEFTCHILD(i) : i ;
-        if(RIGHTCHILD(i) < size && arr[RIGHTCHILD(i)] < arr[smallest]) {
+        int smallest = (LEFTCHILD(i) < size && lessThan(arr[LEFTCHILD(i)], arr[i])) ? LEFTCHILD(i) : i ;
+        if(RIGHTCHILD(i) < size && lessThan(arr[RIGHTCHILD(i)],arr[smallest])) {
             smallest = RIGHTCHILD(i);
         }
         if(smallest != i) {
@@ -250,7 +272,7 @@ int addRunsCompute(int k, char inputFileNames[MAX_FILES][MAX_FILE_LEN], size_t i
         unsigned lastk = INT_MIN;
         while (h.size != 0){
             KVIntPair_t val_run_pair = h.pop();
-            assert(val_run_pair != KVINTPAIRMAX); // TODO delete asserts
+            assert(isNotEqual(val_run_pair, KVINTPAIRMAX)); // TODO delete asserts
             if (lastKey == val_run_pair.first.key){
                 if( lastk < val_run_pair.second){
                     memcpy(output_map + j, &val_run_pair.first, sizeof(KVPair_t));
