@@ -46,14 +46,11 @@ bool greaterThan(struct KVPair K1, struct KVPair K2)
         return K1.key > K2.key;
 }
 
-typedef pair <KVPair_t,int> KVIntPair_t;
-/*
 typedef struct KVIntPair
 {
- 	struct KVPair kvpair;
-	int runId;
+ 	struct KVPair first;
+	int second;
 } KVIntPair_t;
-*/
 
 bool isNotEqual(KVIntPair_t K1, KVIntPair_t K2)
 {
@@ -70,7 +67,7 @@ bool lessThan(KVIntPair_t K1, KVIntPair_t K2)
 #define PARENT(x) (x - 1) / 2
 
 KVPair_t KVPAIRMAX = (KVPair_t) {INT_MAX, 0};
-KVIntPair_t KVINTPAIRMAX = KVIntPair_t(KVPAIRMAX, -1);
+KVIntPair_t KVINTPAIRMAX = (KVIntPair_t) {KVPAIRMAX, -1};
 
 int V_TOMBSTONE = (int) TOMBSTONE;
 
@@ -262,7 +259,7 @@ int addRunsCompute(int k, char inputFileNames[MAX_FILES][MAX_FILE_LEN], size_t i
         for (int i = 0; i < k; i++){
             KVPair_t kvp;
                 memcpy(&kvp,input_maps[i], sizeof(KVPair_t));
-		h.push(KVIntPair_t(kvp, i));
+		h.push((KVIntPair_t){kvp, i});
         }
 
         int j = -1;
@@ -299,7 +296,7 @@ int addRunsCompute(int k, char inputFileNames[MAX_FILES][MAX_FILE_LEN], size_t i
    //             KVPair_t kvp = input_maps[k][heads[k]];
 		KVPair_t kvp;
                 memcpy(&kvp, input_maps[k] + heads[k], sizeof(KVPair_t));
-                h.push(KVIntPair_t(kvp, k));
+                h.push((KVIntPair_t){kvp, k});
             }
         }
 
