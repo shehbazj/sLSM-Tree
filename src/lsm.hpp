@@ -338,15 +338,6 @@ public:
             diskLevels[level]->_activeRun = diskLevels[level]->_activeRun + 1;
         }
 
-	
-	//This is not required, as input files are immutable!
-	/*
-	for (auto r : runsToMerge)
-	{
-		r->reloadMap();
-	}
-	*/
-
 	// reload output buffer from disk into memory
 	diskLevels[level]->runs[diskLevels[level]->_prevRun]->reloadMap();
 

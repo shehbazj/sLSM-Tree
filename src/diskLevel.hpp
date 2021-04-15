@@ -241,7 +241,6 @@ void exitMap(KVPair_t *map, string _filename, size_t filesize)
 		return count;
 	}
 
-//    void addRunsCompute(vector<DiskRun<K, V> *> &runList, const unsigned long runLen, bool lastLevel) {
     int addRunsCompute(vector<string> inputFileNames, vector <size_t> inputFileSizes, string outputFileName, size_t outputFileSize , bool lastLevel) {
 	
 	vector <KVPair_t *> input_maps;
@@ -250,86 +249,6 @@ void exitMap(KVPair_t *map, string _filename, size_t filesize)
  
 	compute_j = sendToCompute(inputFileNames, inputFileSizes, outputFileName, outputFileSize, lastLevel);
  
-	// move this to compute.
-	/*
-	int num_ip_files = inputFileNames.size();
-	
-	for (int curr = 0; curr < num_ip_files ; curr++)
-	{
-		input_maps.push_back(init_map(inputFileNames[curr],inputFileSizes[curr]));
-	}
-
-	output_map = init_map(outputFileName, outputFileSize);
-
-        StaticHeap h = StaticHeap((int) inputFileNames.size(), KVINTPAIRMAX);
-        vector<int> heads(inputFileNames.size(), 0);
-        for (int i = 0; i < inputFileNames.size(); i++){
-            KVPair_t kvp;
-		memcpy(&kvp,input_maps[i], sizeof(KVPair_t));
-            h.push(KVIntPair_t(kvp, i));
-        }
-        
-        int j = -1;
-        K lastKey = INT_MAX;
-        unsigned lastk = INT_MIN;
-        while (h.size != 0){
-            auto val_run_pair = h.pop();
-            assert(val_run_pair != KVINTPAIRMAX); // TODO delete asserts
-            if (lastKey == val_run_pair.first.key){
-                if( lastk < val_run_pair.second){
-                    memcpy(output_map + j, &val_run_pair.first, sizeof(KVPair_t));
-                }
-            }
-            else {
-                ++j;
-		KVPair_t tmp;
-		if (j!= -1) {
-			memcpy(&tmp, output_map + j , sizeof(KVPair_t));
-		}
-                if ( j != -1 && lastLevel && tmp.value == V_TOMBSTONE){
-                    --j;
-                }
-		memcpy(output_map + j, &val_run_pair.first, sizeof(KVPair_t));
-//                output_map[j] = val_run_pair.first;
-            }
-            
-            lastKey = val_run_pair.first.key;
-            lastk = val_run_pair.second;
-            
-            unsigned k = val_run_pair.second;
-            if (++heads[k] < inputFileSizes[k] / sizeof(KVPair_t)){
-   //             KVPair_t kvp = input_maps[k][heads[k]];
-		KVPair_t kvp;
-		memcpy(&kvp, input_maps[k] + heads[k], sizeof(KVPair_t));
-                h.push(KVIntPair_t(kvp, k));
-            }    
-        }
-       	 
-	KVPair_t tmp;
-	memcpy(&tmp, output_map + j , sizeof(KVPair_t));
-        if (lastLevel && tmp.value == V_TOMBSTONE){
-            --j;
-        }
-	// return back from compute.
-	*/
-	/*
-	
-	move these two functions to lsm.hpp as we want to not port
-	fence pointer logic to compute process at the moment.
-	TODO: revisit this design decision.
-        runs[_activeRun]->setCapacity(j + 1);
-        runs[_activeRun]->constructIndex();
-	*/
-	/*
-	_prevRun = _activeRun;
-        if(j + 1 > 0){
-            ++_activeRun;
-        }
-
-	// write output data back to disk 
-	exitMap(output_map, outputFileName, outputFileSize);
-*/
-	// input maps were read only. they are freed by call to distructor
 	return compute_j;
     }
  
