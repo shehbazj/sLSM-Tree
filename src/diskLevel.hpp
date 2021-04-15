@@ -184,7 +184,7 @@ void exitMap(KVPair_t *map, string _filename, size_t filesize)
         }
 }
 
-	string createString(vector <string> &inputFileNames, vector <size_t> inputFileSizes, string outputFileName, size_t outputFileSize)
+	string createString(vector <string> &inputFileNames, vector <size_t> inputFileSizes, string outputFileName, size_t outputFileSize, bool lastLevel)
 	{
 		string allFileNamesAndSizes;
 		int i;
@@ -204,12 +204,15 @@ void exitMap(KVPair_t *map, string _filename, size_t filesize)
 		allFileNamesAndSizes += to_string(outputFileSize);
 		allFileNamesAndSizes += '|';
 
-		return allFileNamesAndSizes;	
+		allFileNamesAndSizes += (lastLevel == true ? '1' : '0');
+		allFileNamesAndSizes += '|';
+
+		return allFileNamesAndSizes;
 	}
 
-	int sendToCompute(vector <string> &inputFileNames, vector <size_t> inputFileSizes, string outputFileName, size_t outputFileSize)
+	int sendToCompute(vector <string> &inputFileNames, vector <size_t> inputFileSizes, string outputFileName, size_t outputFileSize, bool lastLevel)
 	{
-		string allFileNamesAndSizes = createString(inputFileNames, inputFileSizes, outputFileName, outputFileSize);
+		string allFileNamesAndSizes = createString(inputFileNames, inputFileSizes, outputFileName, outputFileSize, lastLevel);
 		int i;
 		int k = inputFileSizes.size();
 		int count;
@@ -243,11 +246,12 @@ void exitMap(KVPair_t *map, string _filename, size_t filesize)
 	
 	vector <KVPair_t *> input_maps;
 	KVPair_t * output_map;
-	int compute_j;      
+	int compute_j;
  
-	compute_j = sendToCompute(inputFileNames, inputFileSizes, outputFileName, outputFileSize);
+	compute_j = sendToCompute(inputFileNames, inputFileSizes, outputFileName, outputFileSize, lastLevel);
  
 	// move this to compute.
+	/*
 	int num_ip_files = inputFileNames.size();
 	
 	for (int curr = 0; curr < num_ip_files ; curr++)
@@ -307,8 +311,7 @@ void exitMap(KVPair_t *map, string _filename, size_t filesize)
             --j;
         }
 	// return back from compute.
-
-	// j = compute_j;
+	*/
 	/*
 	
 	move these two functions to lsm.hpp as we want to not port
@@ -317,7 +320,7 @@ void exitMap(KVPair_t *map, string _filename, size_t filesize)
         runs[_activeRun]->setCapacity(j + 1);
         runs[_activeRun]->constructIndex();
 	*/
-
+	/*
 	_prevRun = _activeRun;
         if(j + 1 > 0){
             ++_activeRun;
@@ -325,8 +328,9 @@ void exitMap(KVPair_t *map, string _filename, size_t filesize)
 
 	// write output data back to disk 
 	exitMap(output_map, outputFileName, outputFileSize);
+*/
 	// input maps were read only. they are freed by call to distructor
-	return j;
+	return compute_j;
     }
  
 

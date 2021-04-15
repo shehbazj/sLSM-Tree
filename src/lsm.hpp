@@ -333,6 +333,11 @@ public:
 
 	// 4. reload changes done in addRuns to the buffer.
 
+	diskLevels[level]->_prevRun = diskLevels[level]->_activeRun;
+        if(j + 1 > 0){
+            diskLevels[level]->_activeRun = diskLevels[level]->_activeRun + 1;
+        }
+
 	
 	//This is not required, as input files are immutable!
 	/*
