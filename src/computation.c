@@ -8,16 +8,16 @@
 #include <errno.h>
 #include <string.h>
 #include <stdlib.h>
-#include <iostream>
+#include <stdbool.h>
+//#include <iostream>
 #include <limits.h>
-#include <vector>
-#include <cassert>
+#include <assert.h>
 
 #define BUFSIZE 4096
 #define MAX_FILE_LEN 1000
 #define MAX_FILES 1000
 
-using namespace std;
+//using namespace std;
 
 int TOMBSTONE = INT_MIN;
 
@@ -52,12 +52,12 @@ typedef struct KVIntPair
 	int second;
 } KVIntPair_t;
 
-bool isNotEqual(KVIntPair_t K1, KVIntPair_t K2)
+bool isNotEqualPair(KVIntPair_t K1, KVIntPair_t K2)
 {
 	return !(isEqual(K1.first, K2.first) && (K1.second == K2.second));
 }
 
-bool lessThan(KVIntPair_t K1, KVIntPair_t K2)
+bool lessThanPair(KVIntPair_t K1, KVIntPair_t K2)
 {
 	return lessThan(K1.first,K2.first) || (!(lessThan(K2.first,K1.first)) && K1.second<K2.second);
 }
@@ -67,16 +67,16 @@ bool lessThan(KVIntPair_t K1, KVIntPair_t K2)
 #define PARENT(x) (x - 1) / 2
 
 KVPair_t KVPAIRMAX = (KVPair_t) {INT_MAX, 0};
-KVIntPair_t KVINTPAIRMAX = (KVIntPair_t) {KVPAIRMAX, -1};
+KVIntPair_t KVINTPAIRMAX; 
 
-int V_TOMBSTONE = (int) TOMBSTONE;
+int V_TOMBSTONE;
 
-struct StaticHeap {
+typedef struct StaticHeap {
     int size ;
     KVIntPair_t *arr;
     KVIntPair_t max;
 	int i;
-
+/*
     StaticHeap(unsigned sz, KVIntPair_t mx) {
         size = 0;
 	arr = (KVIntPair_t *)malloc(sz * sizeof(KVIntPair_t));
@@ -117,7 +117,50 @@ struct StaticHeap {
 	~StaticHeap() {
 		free(arr);
 	}
-};
+	*/
+}StaticHeap;
+
+void initStaticHeap(StaticHeap *H, unsigned sz, KVIntPair_t mx)
+{
+        H->size = 0;
+	H->arr = (KVIntPair_t *)malloc(sz * sizeof(KVIntPair_t));
+        H->max = mx;
+	for (int i = 0 ; i < sz; i++) {
+		H->arr[i] = mx;
+	}
+}
+
+void push(StaticHeap *H, KVIntPair_t blob) {
+        unsigned i = H->size++;
+        while(i && lessThanPair(blob, H->arr[PARENT(i)])) {
+            H->arr[i] = H->arr[PARENT(i)] ;
+            i = PARENT(i) ;
+        }
+        H->arr[i] = blob ;
+    }
+
+void heapify(StaticHeap *H, int i) {
+        int smallest = (LEFTCHILD(i) < H->size && lessThanPair(H->arr[LEFTCHILD(i)], H->arr[i])) ? LEFTCHILD(i) : i ;
+        if(RIGHTCHILD(i) < H->size && lessThanPair(H->arr[RIGHTCHILD(i)],H->arr[smallest])) {
+            smallest = RIGHTCHILD(i);
+        }
+        if(smallest != i) {
+            KVIntPair_t temp = H->arr[i];
+            H->arr[i] = H->arr[smallest];
+            H->arr[smallest] = temp;
+            heapify(H, smallest) ;
+        }
+    }
+
+KVIntPair_t pop(StaticHeap *H) {
+        KVIntPair_t ret = H->arr[0];
+        H->arr[0] = H->arr[--H->size];
+        heapify(H, 0);
+        return ret;
+}
+
+
+
 
 // currentWordIdx is the first character of the inputFileName
 // at the end, currentWordIdx  is set to next first Character or null
@@ -162,13 +205,13 @@ int parseWords(char *buf, char inputFileNames[MAX_FILES][MAX_FILE_LEN], size_t i
 		i++;
 	}
 	
-	cout << "K is  " << k << endl;
+	printf("k = %d\n", k);
 	// skip |
 	i++;
 
 	for (currentWordIdx = 0 ; currentWordIdx < k ; currentWordIdx++)
 	{
-		cout << "currentWordIdx " << currentWordIdx << endl;
+		printf("currentWordIdx %d\n" , currentWordIdx);
 		prevStartIdx = i;
 		// get word size
 		int currentWordSize = getCurrentWordSize(buf,&i);
@@ -178,8 +221,8 @@ int parseWords(char *buf, char inputFileNames[MAX_FILES][MAX_FILE_LEN], size_t i
 		int currentFileSize = getCurrentFileSize(buf,&i);
 		inputFileSizes[currentWordIdx] = currentFileSize;
 
-		cout << "inputFileNames " << inputFileNames[currentWordIdx] << endl;
-		cout << "inputFileSize " << inputFileSizes[currentWordIdx] << endl;
+		printf( "inputFileNames %s\n", inputFileNames[currentWordIdx]);
+		printf( "inputFileSize %lu\n", inputFileSizes[currentWordIdx]);
 	}
 
 	prevStartIdx = i;
@@ -189,8 +232,8 @@ int parseWords(char *buf, char inputFileNames[MAX_FILES][MAX_FILE_LEN], size_t i
 
 	outputFileSize = getCurrentFileSize(buf,&i);
 	*outputFileSz = outputFileSize;
-	cout << "outputFileName " << outputFileName << endl;
-	cout << "outputFileSize " << outputFileSize << endl;
+	printf( "outputFileName %s\n", outputFileName);
+	printf( "outputFileSize %lu\n", outputFileSize);
 
 	lastLevel = getCurrentFileSize(buf,&i);
 
@@ -202,7 +245,7 @@ KVPair_t *init_map(const char *filename, size_t filesize)
 {
         KVPair_t *map = (KVPair_t *) malloc(filesize);
         if (map == NULL) {
-                cout << "Could not initialize memory " << endl;
+                printf("Could not initialize memory ");
                 exit(EXIT_FAILURE);
         }
         int fd = open(filename, O_RDONLY);
@@ -251,6 +294,7 @@ int addRunsCompute(int k, char inputFileNames[MAX_FILES][MAX_FILE_LEN], size_t i
 	KVPair_t **input_maps = (KVPair_t **)malloc(k * (sizeof(KVPair_t *)));
         KVPair_t * output_map;
         int compute_j;
+	int *heads = (int *)malloc(sizeof(int) * k);
 
         // move this to compute.
         int num_ip_files = k;
@@ -258,16 +302,19 @@ int addRunsCompute(int k, char inputFileNames[MAX_FILES][MAX_FILE_LEN], size_t i
         for (int curr = 0; curr < num_ip_files ; curr++)
         {
                 input_maps[curr] = init_map(inputFileNames[curr],inputFileSizes[curr]);
+		heads[curr]=0;
         }
 
         output_map = init_map(outputFileName, outputFileSize);
 
-        StaticHeap h = StaticHeap((int) k, KVINTPAIRMAX);
-        vector<int> heads(k, 0);
+        //StaticHeap h = StaticHeap((int) k, KVINTPAIRMAX);
+        StaticHeap h;
+	initStaticHeap (&h, k, KVINTPAIRMAX);
+
         for (int i = 0; i < k; i++){
             KVPair_t kvp;
                 memcpy(&kvp,input_maps[i], sizeof(KVPair_t));
-		h.push((KVIntPair_t){kvp, i});
+		push(&h, (KVIntPair_t){kvp, i});
         }
 
         int j = -1;
@@ -276,8 +323,8 @@ int addRunsCompute(int k, char inputFileNames[MAX_FILES][MAX_FILE_LEN], size_t i
         int32_t lastKey = INT_MAX;
         unsigned lastk = INT_MIN;
         while (h.size != 0){
-            KVIntPair_t val_run_pair = h.pop();
-            assert(isNotEqual(val_run_pair, KVINTPAIRMAX)); // TODO delete asserts
+            KVIntPair_t val_run_pair = pop(&h);
+            assert(isNotEqualPair(val_run_pair, KVINTPAIRMAX)); // TODO delete asserts
             if (lastKey == val_run_pair.first.key){
                 if( lastk < val_run_pair.second){
                     memcpy(output_map + j, &val_run_pair.first, sizeof(KVPair_t));
@@ -304,7 +351,7 @@ int addRunsCompute(int k, char inputFileNames[MAX_FILES][MAX_FILE_LEN], size_t i
    //             KVPair_t kvp = input_maps[k][heads[k]];
 		KVPair_t kvp;
                 memcpy(&kvp, input_maps[k] + heads[k], sizeof(KVPair_t));
-                h.push((KVIntPair_t){kvp, k});
+                push(&h,(KVIntPair_t){kvp, k});
             }
         }
 
@@ -338,7 +385,9 @@ int addRunsCompute(int k, char inputFileNames[MAX_FILES][MAX_FILE_LEN], size_t i
 		free(input_maps[i]);
 	}
 	free(input_maps);
+	free(heads);
 	free(output_map);
+	free(h.arr);
         return j;
 }
 
@@ -375,6 +424,10 @@ int main(int argc, char *argv[])
 	char buf[BUFSIZE] = {'\n'};
 	int count = 0;
 	int j;
+
+	KVINTPAIRMAX.first = KVPAIRMAX;
+	KVINTPAIRMAX.second = -1;
+	V_TOMBSTONE = (int) TOMBSTONE;
 
 	if( !access( app_writer, F_OK ) == 0 )
 	{
