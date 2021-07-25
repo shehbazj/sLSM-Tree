@@ -1,3 +1,20 @@
+# csLSM-Tree 
+
+A computational storage abstraction for running sLSM tree compaction operation offloaded on another process.
+
+The main.cpp interface is modified to run both 
+a) CLI
+```
+    ./main.out 1
+```
+
+b) All test benchmarks in computational storage mode.
+
+```
+    ./computation
+    ./main.out [2,3,4,5]
+```
+
 # sLSM-Tree
 
 Research Abstract:
