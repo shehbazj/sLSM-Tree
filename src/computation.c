@@ -12,6 +12,8 @@
 //#include <iostream>
 #include <limits.h>
 #include <assert.h>
+#include <stdint.h>
+#include "common.h"
 
 #define BUFSIZE 4096
 #define MAX_FILE_LEN 1000
@@ -243,6 +245,9 @@ int parseWords(char *buf, char inputFileNames[MAX_FILES][MAX_FILE_LEN], size_t i
 
 KVPair_t *init_map(const char *filename, size_t filesize)
 {
+        rdtsc();
+        startc = ( ((uint64_t)cycles_high << 32) | cycles_low );
+
         KVPair_t *map = (KVPair_t *) malloc(filesize);
         if (map == NULL) {
                 printf("Could not initialize memory ");
@@ -259,11 +264,18 @@ KVPair_t *init_map(const char *filename, size_t filesize)
                 exit(1);
         }
         ret = close(fd);
+
+        rdtsc();
+        endc = ( ((uint64_t)cycles_high << 32) | cycles_low ); 
+        computation_fsync_time += (endc - startc);  
+
         return map;
 }
 
 void exitMap(KVPair_t *map, char *_filename, size_t filesize)
 {
+        rdtsc();
+        startc = ( ((uint64_t)cycles_high << 32) | cycles_low );
         int fd = open(_filename, O_WRONLY);
         if (fd < 0) {
                 printf("%s:%d:Open failed on write %s %s\n", __FILE__, __LINE__, strerror(errno), _filename);
@@ -287,6 +299,10 @@ void exitMap(KVPair_t *map, char *_filename, size_t filesize)
                 printf("Close failed\n");
                 exit(1);
         }
+
+        rdtsc();
+        endc = ( ((uint64_t)cycles_high << 32) | cycles_low ); 
+        computation_fsync_time += (endc - startc);  
 }
 
 int addRunsCompute(int k, char inputFileNames[MAX_FILES][MAX_FILE_LEN], size_t inputFileSizes[MAX_FILES], char outputFileName[MAX_FILE_LEN], size_t outputFileSize , bool lastLevel) 
@@ -484,4 +500,5 @@ int main(int argc, char *argv[])
 	close(write_fd);
 
 	printf("done\n");
+    printf("Computation Fsync Time %lu\n", computation_fsync_time);
 }
