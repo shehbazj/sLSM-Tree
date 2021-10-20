@@ -32,7 +32,7 @@
 #include "bloom.hpp"
 #include "hashMap.hpp"
 #include "lsm.hpp"
-
+#include "common.h"
 
 using namespace std;
 
@@ -346,9 +346,9 @@ void fencePointerTest(){
 }
 
 void updateDeleteTest(){
-    const int num_inserts = 500;
-    const int num_runs = 3;
-    const int buffer_capacity = 50;
+    const int num_inserts = 100000;
+    const int num_runs = 4;
+    const int buffer_capacity = 500;
     const double bf_fp = .01;
     const int pageSize = 1024;
     const int disk_runs_per_level = 2;
@@ -827,13 +827,25 @@ int main(int argc, char *argv[]){
     char c;
     scanf("%c", &c);
 
+    start_timer = rdtsc();
+    startr = ( ((uint64_t)cycles_high << 32) | cycles_low );
+    
 	if (argc >= 2) {
 		switch(argv[1][0]) {
 			case '1':
-			    insertLookupTest();
+			        insertLookupTest();
+                    end_timer = rdtsc();
+                    endr = ( ((uint64_t)cycles_high << 32) | cycles_low );
+                    printf("cycles spent: %lu\n",endr - startr);
+                    printf("merge time: %lu\n",merge_time);
 				exit(0);
 			case '2':
+                //forr (int i = 0 ; i < 10 ; i++)
 			    updateDeleteTest();
+                    end_timer = rdtsc();
+                    endr = ( ((uint64_t)cycles_high << 32) | cycles_low );
+                    printf("cycles spent: %lu\n",endr - startr);
+                    printf("merge time: %lu\n",merge_time);
 				exit(0);
 			case '3':
 			    rangeTest();
@@ -905,5 +917,6 @@ int main(int argc, char *argv[]){
 	     queryLine(lsm, input, strings);
 	}
 	}
+
 	return 0;
 }
