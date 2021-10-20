@@ -170,7 +170,13 @@ void exitMap(KVPair_t *map, string _filename, size_t filesize)
                 exit(1);
         }
 
+        rdtsc();
+        startf = ( ((uint64_t)cycles_high << 32) | cycles_low );
         ret = fsync(fd);
+        rdtsc();
+        endf = ( ((uint64_t)cycles_high << 32) | cycles_low );
+        fsync_time += (endf - startf); 
+
         if (ret < 0) {
                 printf("Sync failed\n");
                 exit(1);
