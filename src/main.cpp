@@ -846,6 +846,9 @@ int main(int argc, char *argv[]){
                 endr = ( ((uint64_t)cycles_high << 32) | cycles_low );
                 printf("cycles spent: %lu\n",endr - startr);
                 printf("merge time: %lu\n",merge_time);
+                printf("fsync time: %lu\n",fsync_time);
+                printf("fileread time: %lu\n",file_read_time);
+
 				exit(0);
 			case '3':
 			    rangeTest();
