@@ -218,25 +218,25 @@ void exitMap(KVPair_t *map, string _filename, size_t filesize)
 
 		//char buf[BUFSIZE];
 
-		printf("write to compute fd\n");
+//		printf("write to compute fd\n");
 		int ret = write(write_fd, allFileNamesAndSizes.c_str(), allFileNamesAndSizes.size());
 		if (ret < 0) {
 			printf("Error writing data %s\n", strerror(errno));
 			exit(1);
 		}
-		printf("write to compute fd complete\n");
+//		printf("write to compute fd complete\n");
 	
-		printf("read/write complete\n");
+//		printf("read/write complete\n");
 
 		// read output from the computational disk device
 	
-		printf("reading from compute\n");
+//		printf("reading from compute\n");
 		int result = read(read_fd, &count, sizeof(int));
 		if (result < 0) {
 			printf("%s:Could not read %s\n", __func__, strerror(errno));
 			exit(1);
 		}
-		printf("Count returned from disk %d\n", count);
+//		printf("Count returned from disk %d\n", count);
 		return count;
 	}
 
