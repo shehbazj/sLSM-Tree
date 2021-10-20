@@ -1,3 +1,19 @@
+# cLSM-Tree
+
+sLSM tree has been separated out into the main process and the offloaded compaction process. This implementation is maintained in compute_process branch.
+
+# host
+
+Host is the default sLSM tree with the main interface modified to match the cLSM implementation. It is maintained in the host branch.
+
+# benchmarks
+
+To run the updateDelete lookup test, run:\
+
+`./main 2`
+
+in `host` and `compute_process` branches.
+
 # sLSM-Tree
 
 Research Abstract:
