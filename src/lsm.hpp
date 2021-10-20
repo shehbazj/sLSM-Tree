@@ -38,6 +38,7 @@
 #include <vector>
 #include <mutex>
 #include <thread>
+#include "common.h"
 
 template <class K, class V>
 class LSM {
@@ -226,7 +227,7 @@ public:
             cout << "Number of Elements in Disk Level " << i << "(including deletes): " << diskLevels[i]->num_elements() << endl;
         }
         cout << "KEY VALUE DUMP BY LEVEL: " << endl;
-        printElts();
+        //printElts();
     }
     
     //private: // TODO MAKE PRIVATE
@@ -302,8 +303,15 @@ public:
         if (mergeThread.joinable()){
             mergeThread.join();
         }
-        mergeThread = thread (&LSM::merge_runs, this, runs_to_merge,bf_to_merge); // comment for single threaded merging
-//        merge_runs(runs_to_merge, bf_to_merge); // uncomment for single threaded merging
+//        mergeThread = thread (&LSM::merge_runs, this, runs_to_merge,bf_to_merge); // comment for single threaded merging
+
+        rdtsc();
+        start_timer = ( ((uint64_t)cycles_high << 32) | cycles_low );
+        merge_runs(runs_to_merge, bf_to_merge); // uncomment for single threaded merging
+        rdtsc();
+        end_timer   = ( ((uint64_t)cycles_high << 32) | cycles_low );
+        merge_time += (end_timer - start_timer);
+
         C_0.erase(C_0.begin(), C_0.begin() + _num_to_merge);
         filters.erase(filters.begin(), filters.begin() + _num_to_merge);
         
