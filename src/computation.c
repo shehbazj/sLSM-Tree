@@ -205,13 +205,13 @@ int parseWords(char *buf, char inputFileNames[MAX_FILES][MAX_FILE_LEN], size_t i
 		i++;
 	}
 	
-	printf("k = %d\n", k);
+//	printf("k = %d\n", k);
 	// skip |
 	i++;
 
 	for (currentWordIdx = 0 ; currentWordIdx < k ; currentWordIdx++)
 	{
-		printf("currentWordIdx %d\n" , currentWordIdx);
+	//	printf("currentWordIdx %d\n" , currentWordIdx);
 		prevStartIdx = i;
 		// get word size
 		int currentWordSize = getCurrentWordSize(buf,&i);
@@ -221,8 +221,8 @@ int parseWords(char *buf, char inputFileNames[MAX_FILES][MAX_FILE_LEN], size_t i
 		int currentFileSize = getCurrentFileSize(buf,&i);
 		inputFileSizes[currentWordIdx] = currentFileSize;
 
-		printf( "inputFileNames %s\n", inputFileNames[currentWordIdx]);
-		printf( "inputFileSize %lu\n", inputFileSizes[currentWordIdx]);
+	//	printf( "inputFileNames %s\n", inputFileNames[currentWordIdx]);
+	//	printf( "inputFileSize %lu\n", inputFileSizes[currentWordIdx]);
 	}
 
 	prevStartIdx = i;
@@ -232,8 +232,8 @@ int parseWords(char *buf, char inputFileNames[MAX_FILES][MAX_FILE_LEN], size_t i
 
 	outputFileSize = getCurrentFileSize(buf,&i);
 	*outputFileSz = outputFileSize;
-	printf( "outputFileName %s\n", outputFileName);
-	printf( "outputFileSize %lu\n", outputFileSize);
+//	printf( "outputFileName %s\n", outputFileName);
+//	printf( "outputFileSize %lu\n", outputFileSize);
 
 	lastLevel = getCurrentFileSize(buf,&i);
 
@@ -445,7 +445,7 @@ int main(int argc, char *argv[])
 		exit(1);
 	}
 
-	printf("opened read_fd\n");
+//	printf("opened read_fd\n");
 	// write computation output
 	write_fd = open(app_reader, O_WRONLY);
 	if (write_fd < 0) {
@@ -453,7 +453,7 @@ int main(int argc, char *argv[])
 		exit(1);
 	}
 
-	printf("opened write_fd\n");
+//	printf("opened write_fd\n");
 
 	// read application data
 	while (1)
@@ -467,11 +467,11 @@ int main(int argc, char *argv[])
 			break;
 		}
 
-		printf("read bytes %d\n", read_bytes);
+//		printf("read bytes %d\n", read_bytes);
 		//printf("All Reads Complete\n");
 		j = compute(buf, read_bytes);
 	
-		printf("computation complete, writing output \n");
+//		printf("computation complete, writing output \n");
 		count = j;
 		int result = write(write_fd, &count, sizeof(int));
 		if (result < 0) {
